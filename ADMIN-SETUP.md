@@ -48,7 +48,7 @@ Only users listed in `admins` can change the website. To add another admin later
 
 ## Using it
 
-- Live: https://gutuana.github.io/test-repo/admin/
+- Live: https://gutuana.github.io/Alirana-IT/admin/
 - Local: http://localhost:8000/admin/
 
 The admin page isn't linked from the website and is hidden from search engines,
