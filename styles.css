@@ -65,7 +65,7 @@ a { color: var(--accent); }
   text-decoration: none;
 }
 
-.logo span { color: var(--accent); }
+.logo-accent { color: var(--accent); }
 
 .nav { display: flex; gap: 20px; flex-wrap: wrap; }
 

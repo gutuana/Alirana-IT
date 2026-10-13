@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Admin</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .admin { max-width: 720px; padding-top: 40px; padding-bottom: 80px; }
+    .admin h1 { font-size: 1.6rem; margin: 0 0 8px; }
+    .admin .hint { color: var(--muted); margin: 0 0 24px; }
+    .panel {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .login { max-width: 380px; }
+    label { display: block; font-weight: 600; margin: 0 0 6px; }
+    input, textarea {
+      width: 100%;
+      font: inherit;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 0 0 16px;
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    button.button { border: 0; cursor: pointer; font: inherit; font-weight: 600; }
+    button.link { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
+    fieldset { border: 0; padding: 0; margin: 0 0 28px; }
+    legend { font-size: 1.1rem; font-weight: 700; margin: 0 0 12px; padding: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+    .actions {
+      position: sticky;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 0;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+    .status { color: var(--muted); margin: 0; }
+    .status.error { color: #d93636; }
+    .notice { border-left: 4px solid var(--accent); }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="container admin">
+    <div id="notConfigured" class="panel notice" hidden>
+      <h1>Admin isn't set up yet</h1>
+      <p class="hint">Firebase still needs to be connected. Follow the steps in ADMIN-SETUP.md, then reload this page.</p>
+    </div>
+
+    <section id="loginView" hidden>
+      <h1>Admin sign in</h1>
+      <p class="hint">Sign in to edit the text on the website.</p>
+      <form id="loginForm" class="panel login">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required>
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+        <button class="button" type="submit">Sign in</button>
+        <p id="loginStatus" class="status" role="status"></p>
+      </form>
+    </section>
+
+    <section id="editorView" hidden>
+      <div class="topbar">
+        <div>
+          <h1>Edit website text</h1>
+          <p class="hint" style="margin:0">Signed in as <strong id="whoami"></strong> · <button id="signOut" class="link" type="button">Sign out</button></p>
+        </div>
+        <a href="../" target="_blank" rel="noopener">View website ↗</a>
+      </div>
+      <p class="hint">Empty a field to go back to the original text (shown greyed out inside it).</p>
+      <form id="editorForm">
+        <div id="fields"></div>
+        <div class="actions">
+          <button class="button" type="submit">Save changes</button>
+          <p id="saveStatus" class="status" role="status"></p>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../firebase-config.js"></script>
+  <script src="../content-fields.js"></script>
+  <script>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+
+      if (!window.FIREBASE_CONFIG || !window.firebase) {
+        $('notConfigured').hidden = false;
+        return;
+      }
+
+      firebase.initializeApp(window.FIREBASE_CONFIG);
+      var auth = firebase.auth();
+      var db = firebase.firestore();
+      var contentRef = db.collection('site').doc('content');
+      var fields = window.SITE_FIELDS;
+
+      auth.onAuthStateChanged(function (user) {
+        $('loginView').hidden = !!user;
+        $('editorView').hidden = !user;
+        if (user) openEditor(user);
+      });
+
+      $('loginForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        setStatus('loginStatus', 'Signing in…');
+        auth.signInWithEmailAndPassword($('email').value.trim(), $('password').value)
+          .then(function () { setStatus('loginStatus', ''); $('password').value = ''; })
+          .catch(function () { setStatus('loginStatus', 'Wrong email or password.', true); });
+      });
+
+      $('signOut').addEventListener('click', function () { auth.signOut(); });
+
+      async function openEditor(user) {
+        $('whoami').textContent = user.email;
+        $('fields').textContent = '';
+        setStatus('saveStatus', 'Loading…');
+
+        try {
+          var admin = await db.collection('admins').doc(user.uid).get();
+          if (!admin.exists) {
+            setStatus('saveStatus', 'This account is not an admin, so it cannot save changes.', true);
+            return;
+          }
+          var results = await Promise.all([readOriginalText(), contentRef.get()]);
+          var saved = results[1].exists ? results[1].data() : {};
+          buildForm(results[0], saved);
+          setStatus('saveStatus', '');
+        } catch (err) {
+          console.error(err);
+          setStatus('saveStatus', 'Could not load the website text. Check your connection and reload.', true);
+        }
+      }
+
+      // The original wording lives only in index.html, so read it from there.
+      async function readOriginalText() {
+        var res = await fetch('../index.html', { cache: 'no-store' });
+        var page = new DOMParser().parseFromString(await res.text(), 'text/html');
+        var original = {};
+        fields.forEach(function (field) {
+          var el = page.querySelector('[data-field="' + field.key + '"]');
+          if (!el) return;
+          var text = field.attr ? el.getAttribute(field.attr) : el.textContent;
+          original[field.key] = (text || '').replace(/\s+/g, ' ').trim();
+        });
+        return original;
+      }
+
+      function buildForm(original, saved) {
+        var container = $('fields');
+        var groups = {};
+        fields.forEach(function (field) {
+          if (!groups[field.group]) {
+            var fs = document.createElement('fieldset');
+            var legend = document.createElement('legend');
+            legend.textContent = field.group;
+            fs.appendChild(legend);
+            container.appendChild(fs);
+            groups[field.group] = fs;
+          }
+          var id = 'f-' + field.key;
+          var label = document.createElement('label');
+          label.htmlFor = id;
+          label.textContent = field.label;
+
+          var input = document.createElement(field.multiline ? 'textarea' : 'input');
+          if (!field.multiline) input.type = field.type === 'email' ? 'email' : 'text';
+          input.id = id;
+          input.name = field.key;
+          input.placeholder = original[field.key] || '';
+          input.value = typeof saved[field.key] === 'string' ? saved[field.key] : (original[field.key] || '');
+
+          groups[field.group].appendChild(label);
+          groups[field.group].appendChild(input);
+        });
+      }
+
+      $('editorForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!e.target.reportValidity()) return;
+
+        var data = {};
+        fields.forEach(function (field) {
+          var input = $('f-' + field.key);
+          if (!input) return;
+          var value = input.value.trim();
+          // An emptied field is removed so the page falls back to its original text.
+          data[field.key] = value === '' ? firebase.firestore.FieldValue.delete() : value;
+        });
+
+        setStatus('saveStatus', 'Saving…');
+        contentRef.set(data, { merge: true })
+          .then(function () {
+            setStatus('saveStatus', 'Saved at ' + new Date().toLocaleTimeString() + '. Reload the website to see it.');
+          })
+          .catch(function (err) {
+            console.error(err);
+            setStatus('saveStatus', err.code === 'permission-denied'
+              ? 'This account is not allowed to save changes.'
+              : 'Could not save. Check your connection and try again.', true);
+          });
+      });
+
+      function setStatus(id, text, isError) {
+        $(id).textContent = text;
+        $(id).classList.toggle('error', !!isError);
+      }
+    })();
+  </script>
+</body>
+</html>

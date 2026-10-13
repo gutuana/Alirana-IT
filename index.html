@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Alirana-IT</title>
-  <meta name="description" content="Alirana-IT — a new company getting ready for its first projects.">
+  <title data-field="companyName">Alirana-IT</title>
+  <meta name="description" data-field="metaDescription" content="Alirana-IT — a new company getting ready for its first projects.">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a href="#" class="logo">Alirana<span>-IT</span></a>
+      <a href="#" class="logo"><span data-field="logoMain">Alirana</span><span class="logo-accent" data-field="logoAccent">-IT</span></a>
       <nav class="nav">
-        <a href="#about">About</a>
-        <a href="#services">Services</a>
-        <a href="#projects">Projects</a>
-        <a href="#contact">Contact</a>
+        <a href="#about" data-field="navAbout">About</a>
+        <a href="#services" data-field="navServices">Services</a>
+        <a href="#projects" data-field="navProjects">Projects</a>
+        <a href="#contact" data-field="navContact">Contact</a>
       </nav>
     </div>
   </header>
@@ -23,36 +23,35 @@
   <main>
     <section class="hero">
       <div class="container">
-        <p class="eyebrow">Just getting started</p>
-        <h1>We build simple, reliable solutions for growing businesses.</h1>
-        <p class="lead">A short sentence describing what the company does and who it helps.</p>
-        <a href="#contact" class="button">Get in touch</a>
+        <p class="eyebrow" data-field="heroEyebrow">Just getting started</p>
+        <h1 data-field="heroTitle">We build simple, reliable solutions for growing businesses.</h1>
+        <p class="lead" data-field="heroLead">A short sentence describing what the company does and who it helps.</p>
+        <a href="#contact" class="button" data-field="heroButton">Get in touch</a>
       </div>
     </section>
 
     <section id="about" class="section">
       <div class="container">
-        <h2>About us</h2>
-        <p>Tell visitors who you are, why you started the company and what you care about.
-           Two or three sentences is enough for now.</p>
+        <h2 data-field="aboutHeading">About us</h2>
+        <p data-field="aboutText">Tell visitors who you are, why you started the company and what you care about. Two or three sentences is enough for now.</p>
       </div>
     </section>
 
     <section id="services" class="section section-alt">
       <div class="container">
-        <h2>What we do</h2>
+        <h2 data-field="servicesHeading">What we do</h2>
         <div class="cards">
           <article class="card">
-            <h3>Service one</h3>
-            <p>A short description of the first thing you offer.</p>
+            <h3 data-field="service1Title">Service one</h3>
+            <p data-field="service1Text">A short description of the first thing you offer.</p>
           </article>
           <article class="card">
-            <h3>Service two</h3>
-            <p>A short description of the second thing you offer.</p>
+            <h3 data-field="service2Title">Service two</h3>
+            <p data-field="service2Text">A short description of the second thing you offer.</p>
           </article>
           <article class="card">
-            <h3>Service three</h3>
-            <p>A short description of the third thing you offer.</p>
+            <h3 data-field="service3Title">Service three</h3>
+            <p data-field="service3Text">A short description of the third thing you offer.</p>
           </article>
         </div>
       </div>
@@ -60,31 +59,33 @@
 
     <section id="projects" class="section">
       <div class="container">
-        <h2>Projects</h2>
+        <h2 data-field="projectsHeading">Projects</h2>
         <div class="empty-state">
-          <p><strong>Our first projects are on the way.</strong></p>
-          <p>We're just getting started. Check back soon, or get in touch if you'd like to be one of our first clients.</p>
+          <p><strong data-field="projectsEmptyTitle">Our first projects are on the way.</strong></p>
+          <p data-field="projectsEmptyText">We're just getting started. Check back soon, or get in touch if you'd like to be one of our first clients.</p>
         </div>
       </div>
     </section>
 
     <section id="contact" class="section section-alt">
       <div class="container">
-        <h2>Contact</h2>
-        <p>Have an idea or a question? We'd love to hear from you.</p>
-        <p><a href="mailto:eng.anagutu@gmail.com" class="button">eng.anagutu@gmail.com</a></p>
+        <h2 data-field="contactHeading">Contact</h2>
+        <p data-field="contactText">Have an idea or a question? We'd love to hear from you.</p>
+        <p><a href="mailto:eng.anagutu@gmail.com" class="button" data-field="contactEmail">eng.anagutu@gmail.com</a></p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="container">
-      <p>&copy; <span id="year"></span> Alirana-IT. All rights reserved.</p>
+      <p>&copy; <span id="year"></span> <span data-field="companyName">Alirana-IT</span>. All rights reserved.</p>
     </div>
   </footer>
 
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="content-fields.js"></script>
+  <script src="site.js"></script>
 </body>
 </html>
